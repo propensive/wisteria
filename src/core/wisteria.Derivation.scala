@@ -27,11 +27,28 @@ extends ProductDerivationMethods[TypeclassType], SumDerivationMethods[TypeclassT
   inline given [DerivationType](using Reflection[DerivationType])
       => TypeclassType[DerivationType] as derived =
 
-    inline summon[Reflection[DerivationType]] match
-      case reflection: ProductReflection[derivationType] =>
-        join[derivationType](using reflection).asMatchable match
+    inline erasedValue[DerivationType] match
+      case _: NamedTuple.NamedTuple[labelsType, tupleType] =>
+        val reflection = summonInline[ProductReflection[tupleType]]
+
+        type NamedTupleReflection = Mirror.ProductOf[NamedTuple.NamedTuple[labelsType, tupleType]]:
+          type MirroredMonoType = NamedTuple.NamedTuple[labelsType, tupleType]
+          type MirroredType = NamedTuple.NamedTuple[labelsType, tupleType]
+          type MirroredLabel = reflection.MirroredLabel
+          type MirroredElemTypes = tupleType
+          type MirroredElemLabels = labelsType
+
+        val reflection2 = reflection.asInstanceOf[NamedTupleReflection & Mirror.ProductOf[DerivationType & Product]]
+
+        join[DerivationType & Product](using reflection2).asMatchable match
           case typeclass: TypeclassType[DerivationType] => typeclass
 
-      case reflection: SumReflection[derivationType] =>
-        split[derivationType](using reflection).asMatchable match
-          case typeclass: TypeclassType[DerivationType] => typeclass
+      case _ =>
+        inline summon[Reflection[DerivationType]] match
+          case reflection: ProductReflection[derivationType] =>
+            join[derivationType](using reflection).asMatchable match
+              case typeclass: TypeclassType[DerivationType] => typeclass
+
+          case reflection: SumReflection[derivationType] =>
+            split[derivationType](using reflection).asMatchable match
+              case typeclass: TypeclassType[DerivationType] => typeclass

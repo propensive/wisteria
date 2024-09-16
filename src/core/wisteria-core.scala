@@ -27,3 +27,16 @@ type Derivable[DerivationType <: { type Self }] =
 
 type ProductDerivable[DerivationType <: { type Self }] =
   ProductDerivation[[SelfType] =>> DerivationType { type Self = SelfType }]
+
+package derivationFeatures:
+  given [NamesType <: Tuple, TupleType <: Tuple](using mirror: Mirror.ProductOf[TupleType])
+      => Mirror.ProductOf[NamedTuple.NamedTuple[NamesType, TupleType]] as namedTupleDerivation:
+
+    type MirroredMonoType = NamedTuple.NamedTuple[NamesType, TupleType]
+    type MirroredType = MirroredMonoType
+    type MirroredLabel = mirror.MirroredLabel
+    type MirroredElemTypes = TupleType
+    type MirroredElemLabels = NamesType
+
+    def fromProduct(p: Product): MirroredMonoType =
+      mirror.fromProduct(p).asInstanceOf[MirroredMonoType]
